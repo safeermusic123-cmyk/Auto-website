@@ -113,14 +113,6 @@
             background-color: #000;
         }
 
-        @media (max-width: 768px) {
-            .canvas-container {
-                height: 56.25vw; /* 16:9 Aspect Ratio */
-                position: sticky;
-                top: calc(50vh - 28.125vw); /* Centered vertically on the mobile screen */
-            }
-        }
-
         #animation-canvas {
             display: block;
             width: 100%;
@@ -487,6 +479,22 @@
             z-index: 20;
             /* Clipped dynamically in JS; 50% initial state */
             clip-path: inset(0 0 0 50%);
+        }
+
+        .image-label {
+            position: absolute;
+            bottom: 20px;
+            font-family: var(--font-heading);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            padding: 6px 12px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 4px;
+            color: var(--text-primary);
+            pointer-events: none;
         }
 
         .image-label {
@@ -1189,16 +1197,7 @@
             // --- Initial Layout Setup ---
             function resizeCanvas() {
                 canvas.width = window.innerWidth;
-                
-                // On mobile viewports (< 768px wide), the canvas height matches the 16:9 container height.
-                // On desktop, it takes the full viewport height.
-                const isMobile = window.innerWidth < 768;
-                if (isMobile) {
-                    canvas.height = window.innerWidth * (9 / 16);
-                } else {
-                    canvas.height = window.innerHeight;
-                }
-                
+                canvas.height = window.innerHeight; // Fill screen height on all devices
                 renderFrame(animationState.currentProgress);
             }
             window.addEventListener('resize', resizeCanvas);
@@ -1221,6 +1220,7 @@
                 }
             }
 
+            // --- Preloader Progress Tracker ---
             function updatePreloader() {
                 const percentage = (loadedCount / frameCount) * 100;
                 if (loaderBarFill) {
@@ -1236,24 +1236,39 @@
                 }
             }
 
-            // --- Image Aspect Ratio Cover/Fill Utility ---
+            // --- Image Aspect Ratio Cover/Zoom Utility ---
             function drawImageProp(img) {
                 if (!img || !img.complete) return;
                 
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
                 const isMobile = window.innerWidth < 768;
+                const canvasAspect = canvas.width / canvas.height;
+                const imgAspect = img.width / img.height;
+                
+                let sx, sy, sWidth, sHeight;
+                let dx, dy, dWidth, dHeight;
                 
                 if (isMobile) {
-                    // Draw image filling the canvas exactly (since both canvas and images are 16:9 on mobile)
-                    ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, canvas.width, canvas.height);
+                    // Option B: Slightly Zoomed Fit (Scale up contain mode by 1.4x)
+                    // This fills more of the vertical screen height while keeping the car in full view
+                    const zoomFactor = 1.4;
+                    
+                    if (imgAspect > canvasAspect) {
+                        // Image is wider than portrait canvas (fit width * zoom)
+                        dWidth = canvas.width * zoomFactor;
+                        dHeight = dWidth / imgAspect;
+                        dx = (canvas.width - dWidth) / 2;
+                        dy = (canvas.height - dHeight) / 2;
+                    } else {
+                        dHeight = canvas.height * zoomFactor;
+                        dWidth = dHeight * imgAspect;
+                        dx = (canvas.width - dWidth) / 2;
+                        dy = (canvas.height - dHeight) / 2;
+                    }
+                    ctx.drawImage(img, 0, 0, img.width, img.height, dx, dy, dWidth, dHeight);
                 } else {
                     // Desktop 'cover' logic
-                    const canvasAspect = canvas.width / canvas.height;
-                    const imgAspect = img.width / img.height;
-                    
-                    let sx, sy, sWidth, sHeight;
-                    
                     if (imgAspect > canvasAspect) {
                         sHeight = img.height;
                         sWidth = img.height * canvasAspect;

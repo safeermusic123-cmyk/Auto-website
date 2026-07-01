@@ -102,12 +102,7 @@ body {
     background-color: #000;
 }
 
-@media (max-width: 768px) {
-    .canvas-container {
-        height: 56.25vw; /* 16:9 Aspect Ratio */
-        top: calc(50vh - 28.125vw); /* Centered vertically on the mobile screen */
-    }
-}
+
 
 #animation-canvas {
     display: block;
