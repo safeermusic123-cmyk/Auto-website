@@ -30,7 +30,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Initial Layout Setup ---
     function resizeCanvas() {
         canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        
+        // On mobile viewports (< 768px wide), the canvas height matches the 16:9 container height.
+        // On desktop, it takes the full viewport height.
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) {
+            canvas.height = window.innerWidth * (9 / 16);
+        } else {
+            canvas.height = window.innerHeight;
+        }
+        
         renderFrame(animationState.currentProgress);
     }
     window.addEventListener('resize', resizeCanvas);
@@ -68,47 +77,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Image Aspect Ratio Cover/Contain Utility ---
+    // --- Image Aspect Ratio Cover/Fill Utility ---
     function drawImageProp(img) {
         if (!img || !img.complete) return;
         
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        const canvasAspect = canvas.width / canvas.height;
-        const imgAspect = img.width / img.height;
-        
-        let sx, sy, sWidth, sHeight;
-        let dx, dy, dWidth, dHeight;
-        
-        // Responsive mobile/orientation check:
-        // Use 'contain' on mobile screens (width < 768px) or portrait viewports to show the entire car frame,
-        // and 'cover' on landscape/PC viewports for full-bleed immersion.
-        const isMobile = window.innerWidth < 768 || canvas.height > canvas.width;
+        const isMobile = window.innerWidth < 768;
         
         if (isMobile) {
-            if (imgAspect > canvasAspect) {
-                // Image is wider than portrait canvas (fit to width)
-                dWidth = canvas.width;
-                dHeight = canvas.width / imgAspect;
-                dx = 0;
-                dy = (canvas.height - dHeight) / 2;
-            } else {
-                // Image is taller than portrait canvas (fit to height)
-                dHeight = canvas.height;
-                dWidth = canvas.height * imgAspect;
-                dx = (canvas.width - dWidth) / 2;
-                dy = 0;
-            }
-            ctx.drawImage(img, 0, 0, img.width, img.height, dx, dy, dWidth, dHeight);
+            // Draw image filling the canvas exactly (since both canvas and images are 16:9 on mobile)
+            ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, canvas.width, canvas.height);
         } else {
+            // Desktop 'cover' logic
+            const canvasAspect = canvas.width / canvas.height;
+            const imgAspect = img.width / img.height;
+            
+            let sx, sy, sWidth, sHeight;
+            
             if (imgAspect > canvasAspect) {
-                // Image is wider than landscape canvas (crop sides)
                 sHeight = img.height;
                 sWidth = img.height * canvasAspect;
                 sx = (img.width - sWidth) / 2;
                 sy = 0;
             } else {
-                // Image is taller than landscape canvas (crop top/bottom)
                 sWidth = img.width;
                 sHeight = img.width / canvasAspect;
                 sx = 0;
