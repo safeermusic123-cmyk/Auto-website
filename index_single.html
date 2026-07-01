@@ -1231,12 +1231,12 @@
                 let sx, sy, sWidth, sHeight;
                 let dx, dy, dWidth, dHeight;
                 
-                // Responsive orientation check:
-                // Use 'contain' on portrait/mobile viewports to show the entire car frame,
+                // Responsive mobile/orientation check:
+                // Use 'contain' on mobile screens (width < 768px) or portrait viewports to show the entire car frame,
                 // and 'cover' on landscape/PC viewports for full-bleed immersion.
-                const isPortrait = canvas.height > canvas.width;
+                const isMobile = window.innerWidth < 768 || canvas.height > canvas.width;
                 
-                if (isPortrait) {
+                if (isMobile) {
                     if (imgAspect > canvasAspect) {
                         dWidth = canvas.width;
                         dHeight = canvas.width / imgAspect;
