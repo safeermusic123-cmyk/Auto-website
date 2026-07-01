@@ -68,31 +68,54 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Image Aspect Ratio Cover Utility ---
+    // --- Image Aspect Ratio Cover/Contain Utility ---
     function drawImageProp(img) {
         if (!img || !img.complete) return;
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         const canvasAspect = canvas.width / canvas.height;
         const imgAspect = img.width / img.height;
         
         let sx, sy, sWidth, sHeight;
+        let dx, dy, dWidth, dHeight;
         
-        if (imgAspect > canvasAspect) {
-            // Image is wider than canvas
-            sHeight = img.height;
-            sWidth = img.height * canvasAspect;
-            sx = (img.width - sWidth) / 2;
-            sy = 0;
+        // Responsive orientation check:
+        // Use 'contain' on portrait/mobile viewports to show the entire car frame,
+        // and 'cover' on landscape/PC viewports for full-bleed immersion.
+        const isPortrait = canvas.height > canvas.width;
+        
+        if (isPortrait) {
+            if (imgAspect > canvasAspect) {
+                // Image is wider than portrait canvas (fit to width)
+                dWidth = canvas.width;
+                dHeight = canvas.width / imgAspect;
+                dx = 0;
+                dy = (canvas.height - dHeight) / 2;
+            } else {
+                // Image is taller than portrait canvas (fit to height)
+                dHeight = canvas.height;
+                dWidth = canvas.height * imgAspect;
+                dx = (canvas.width - dWidth) / 2;
+                dy = 0;
+            }
+            ctx.drawImage(img, 0, 0, img.width, img.height, dx, dy, dWidth, dHeight);
         } else {
-            // Image is taller than canvas
-            sWidth = img.width;
-            sHeight = img.width / canvasAspect;
-            sx = 0;
-            sy = (img.height - sHeight) / 2;
+            if (imgAspect > canvasAspect) {
+                // Image is wider than landscape canvas (crop sides)
+                sHeight = img.height;
+                sWidth = img.height * canvasAspect;
+                sx = (img.width - sWidth) / 2;
+                sy = 0;
+            } else {
+                // Image is taller than landscape canvas (crop top/bottom)
+                sWidth = img.width;
+                sHeight = img.width / canvasAspect;
+                sx = 0;
+                sy = (img.height - sHeight) / 2;
+            }
+            ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
         }
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
     }
 
     // --- Render Frame ---
@@ -177,13 +200,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Touch Events (Mobile)
+        // Touch Events (Mobile) - Added preventDefault to block page scrolling while dragging
         sliderContainer.addEventListener('touchstart', (e) => {
             isDragging = true;
             if (e.touches.length > 0) {
                 updateSlider(e.touches[0].clientX);
             }
-        });
+        }, { passive: true });
 
         window.addEventListener('touchend', () => {
             isDragging = false;
@@ -191,9 +214,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.addEventListener('touchmove', (e) => {
             if (isDragging && e.touches.length > 0) {
+                if (e.cancelable) {
+                    e.preventDefault(); // Prevent standard page scroll
+                }
                 updateSlider(e.touches[0].clientX);
             }
-        });
+        }, { passive: false });
 
         // Tab Switching Logic
         tabButtons.forEach(btn => {
@@ -270,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const observerOptions = {
             root: null,
             rootMargin: '0px',
-            threshold: 0.1 // Trigger early when crossing viewport
+            threshold: 0.02 // Set low threshold (2%) to guarantee triggering on mobile tall screens
         };
 
         const revealObserver = new IntersectionObserver((entries, observer) => {
